@@ -65,9 +65,9 @@ void find_n_leading_zeros_worker(const std::string &input, int n,
         preimage = input + ss.str();
         bytes = hex2bytes(preimage);
         candidate = sha256(bytes);
-        if (check_hash(candidate, n)) {
+        if (check_hash(candidate, n) || i == UINT_MAX) {
             nonce = ss.str();
-            output = candidate;
+            output = i == UINT_MAX ? "Not found" : candidate;
             found = true;
             break;
         }
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
     std::string nonce;
     std::ofstream ofd("out.txt", std::ios::trunc);
     int num_threads = 4;
-    int n = 100;
+    int n = 200;
     for (int i = 0; i < n; i++) {
         i == 0 ? num_threads = 1 : num_threads = 8;
         output = find_n_leading_zeros(prev_hash, i, nonce, num_threads);
