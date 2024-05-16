@@ -9,8 +9,9 @@
 #include <sstream>
 #include <iomanip>
 #include <string>
-
-enum InputType { text, hex };
+#include <thread>
+#include <vector>
+#include <atomic>
 
 std::string hex2bytes(const std::string& hex) {
     std::string bytes;
@@ -45,27 +46,49 @@ bool check_hash(const std::string &input, int n)
     return flag;
 }
 
-std::string find_n_leading_zeros(const std::string &input, int n, std::string &nonce)
+void find_n_leading_zeros_worker(const std::string &input, int n, 
+    std::atomic<unsigned int> &counter, std::atomic<bool> &found,
+    std::string &nonce, std::string &output)
 {
     std::stringstream ss;
     std::string preimage;
     std::string bytes;
-    std::string output;
+    std::string candidate;
     preimage.reserve(40);
 
     unsigned int i;
-    unsigned int limit = 0 - 1;
-    for (i = 0; i < limit; i++) {
+
+    while (!found) {
+        i = counter++;
         ss << std::hex << std::uppercase << std::setw(8) << std::setfill('0') << i;
         preimage = input + ss.str();
         bytes = hex2bytes(preimage);
-        output = sha256(bytes);
-        if (check_hash(output, n) == true) {
+        candidate = sha256(bytes);
+        if (check_hash(candidate, n)) {
             nonce = ss.str();
+            output = candidate;
+            found = true;
             break;
         }
         ss.str("");
         ss.clear();
+    }
+}
+
+std::string find_n_leading_zeros(const std::string &input, int n, std::string &nonce, int num_threads = 4)
+{
+    std::atomic<unsigned int> counter(0);
+    std::atomic<bool> found(false);
+    std::string output;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < num_threads; i++) {
+        threads.emplace_back(find_n_leading_zeros_worker, std::ref(input),
+            n, std::ref(counter), std::ref(found), std::ref(nonce), std::ref(output));
+    }
+
+    for (auto &t: threads) {
+        t.join();
     }
 
     return output;
@@ -77,10 +100,10 @@ int main(int argc, char **argv)
     std::string prev_hash = sha256(initial_message);
     std::string output;
     std::string nonce;
-    int n = 5;
+    int n = 100;
     for (int i = 0; i < n; i++) {
-        output = find_n_leading_zeros(prev_hash, i, nonce);
-        std::cout << i << std::endl
+        output = find_n_leading_zeros(prev_hash, i, nonce, 4);
+        std::cout << i << std::endl 
                   << prev_hash << std::endl
                   << nonce << std::endl
                   << output << std::endl;
