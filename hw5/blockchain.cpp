@@ -100,9 +100,11 @@ int main(int argc, char **argv)
     std::string prev_hash = sha256(initial_message);
     std::string output;
     std::string nonce;
+    int num_threads = 4;
     int n = 100;
     for (int i = 0; i < n; i++) {
-        output = find_n_leading_zeros(prev_hash, i, nonce, 4);
+        i == 0 ? num_threads = 1 : num_threads = 8;
+        output = find_n_leading_zeros(prev_hash, i, nonce, num_threads);
         std::cout << i << std::endl 
                   << prev_hash << std::endl
                   << nonce << std::endl
