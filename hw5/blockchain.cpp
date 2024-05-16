@@ -78,10 +78,21 @@ void find_n_leading_zeros_worker(const std::string &input, int n,
 
 void print_counter(const std::atomic<unsigned int> &counter, const std::atomic<bool> &found)
 {
+    auto start_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_time;
     while (!found) {
+        auto current_time = std::chrono::steady_clock::now();
+        elapsed_time = current_time - start_time;
+        auto minutes = std::chrono::duration_cast<std::chrono::minutes>(elapsed_time).count();
+        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed_time).count() % 60;
         std::cout << std::hex << std::uppercase
                   << std::setw(8) << std::setfill('0')
-                  << counter.load() << "\r";
+                  << counter.load() << " "
+                  << std::dec
+                  << std::setw(2) << std::setfill('0')
+                  << minutes << ":"
+                  << std::setw(2) << std::setfill('0')
+                  << seconds << "\r";
     }
 }
 
@@ -113,13 +124,13 @@ int main(int argc, char **argv)
     std::string prev_hash = sha256(initial_message);
     std::string output;
     std::string nonce;
-    std::ofstream ofd("out.txt", std::ios::app);
+    std::ofstream ofd("out.txt", std::ios::trunc);
     int num_threads = 4;
     int n = 100;
     for (int i = 0; i < n; i++) {
         i == 0 ? num_threads = 1 : num_threads = 8;
         output = find_n_leading_zeros(prev_hash, i, nonce, num_threads);
-        std::cout << i << "        " << std::endl 
+        std::cout << i << "                   " << std::endl
                   << prev_hash << std::endl
                   << nonce << std::endl
                   << output << std::endl;
