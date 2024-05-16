@@ -75,6 +75,15 @@ void find_n_leading_zeros_worker(const std::string &input, int n,
     }
 }
 
+void print_counter(const std::atomic<unsigned int> &counter, const std::atomic<bool> &found)
+{
+    while (!found) {
+        std::cout << std::hex << std::uppercase
+                  << std::setw(8) << std::setfill('0')
+                  << counter.load() << "\r";
+    }
+}
+
 std::string find_n_leading_zeros(const std::string &input, int n, std::string &nonce, int num_threads = 4)
 {
     std::atomic<unsigned int> counter(0);
@@ -87,16 +96,19 @@ std::string find_n_leading_zeros(const std::string &input, int n, std::string &n
             n, std::ref(counter), std::ref(found), std::ref(nonce), std::ref(output));
     }
 
+    std::thread counter_thread(print_counter, std::ref(counter), std::ref(found));
+
     for (auto &t: threads) {
         t.join();
     }
+    counter_thread.join();
 
     return output;
 }
 
 int main(int argc, char **argv)
 {
-    std::string initial_message = "Bitcoin";
+    std::string initial_message = "109611087";
     std::string prev_hash = sha256(initial_message);
     std::string output;
     std::string nonce;
@@ -105,7 +117,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < n; i++) {
         i == 0 ? num_threads = 1 : num_threads = 8;
         output = find_n_leading_zeros(prev_hash, i, nonce, num_threads);
-        std::cout << i << std::endl 
+        std::cout << i << "        " << std::endl 
                   << prev_hash << std::endl
                   << nonce << std::endl
                   << output << std::endl;
