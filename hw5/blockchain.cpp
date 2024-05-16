@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -112,6 +113,7 @@ int main(int argc, char **argv)
     std::string prev_hash = sha256(initial_message);
     std::string output;
     std::string nonce;
+    std::ofstream ofd("out.txt", std::ios::app);
     int num_threads = 4;
     int n = 100;
     for (int i = 0; i < n; i++) {
@@ -121,6 +123,10 @@ int main(int argc, char **argv)
                   << prev_hash << std::endl
                   << nonce << std::endl
                   << output << std::endl;
+        ofd << i << std::endl
+            << prev_hash << std::endl
+            << nonce << std::endl
+            << output << std::endl;
         prev_hash = output;
     }
 
